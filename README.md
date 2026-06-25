@@ -41,7 +41,14 @@ Accéder à **Réglages > PoW for Cap** dans l'administration WordPress.
 
 Par défaut, toute erreur de communication avec l'instance Cap (réseau, timeout, erreur 5xx) bloque la requête. Activer **Fail Open** inverse ce comportement : les erreurs d'infrastructure laissent passer la requête.
 
-**Un token explicitement invalide (`success: false`) est toujours rejeté**, quel que soit ce paramètre.
+Les erreurs couvertes par Fail Open sont exclusivement :
+- Erreur réseau ou timeout (`WP_Error` retourné par l'API HTTP WordPress)
+- Code HTTP hors 2xx (5xx, 4xx renvoyé par le serveur Cap)
+- Réponse non décodable en JSON valide
+
+**Ce qui n'est jamais couvert par Fail Open :**
+- **Token absent ou vide** — rejeté inconditionnellement (`false`). L'absence de token n'est pas une erreur d'infrastructure, c'est une absence de tentative de vérification.
+- **Token explicitement invalide** (`success: false` dans la réponse JSON) — toujours rejeté.
 
 ---
 

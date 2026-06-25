@@ -55,7 +55,7 @@ After activation, navigate to **Settings > PoW for Cap**:
 * **Secret Key** — The secret key from your Cap dashboard
 * **Token Field Name** — Name of the hidden field injected by the widget (default: `cap-token`)
 * **Timeout** — Seconds before abandoning the request to `/siteverify` (default: `5`)
-* **Fail Open** — Allow requests through when the Cap server is unreachable
+* **Fail Open** — Allow requests through on infrastructure errors only (network error, timeout, non-2xx HTTP response, or unparseable JSON). An absent or empty token is **always rejected** regardless of this setting.
 
 == Frequently Asked Questions ==
 
@@ -78,6 +78,12 @@ Yes. If Gravity Forms is active, the Cap widget is automatically prepended to th
 = What is the shortcode? =
 
 Use `[tpow_widget]` to embed the Cap widget in any page or custom form.
+
+= What does Fail Open cover exactly? =
+
+Fail Open only applies to infrastructure errors: network failure, timeout, non-2xx HTTP response from the Cap server, or a response body that cannot be decoded as valid JSON.
+
+It never covers a missing or empty token — a form submission without a `cap-token` field is always rejected regardless of this setting. It also never covers an explicit rejection (`success: false`) returned by the Cap server.
 
 == Changelog ==
 

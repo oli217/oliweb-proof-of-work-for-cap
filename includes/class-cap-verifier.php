@@ -11,7 +11,7 @@ class Tpow_Verifier
     public function verify(string $token): bool
     {
         if (empty($token)) {
-            return $this->failOpen();
+            return false;
         }
 
         $response = wp_remote_post($this->siteVerifyUrl(), [
@@ -31,7 +31,12 @@ class Tpow_Verifier
             return $this->failOpen();
         }
 
-        $data = json_decode(wp_remote_retrieve_body($response), true);
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if ($data === null && $body !== 'null') {
+            return $this->failOpen();
+        }
 
         return ! empty($data['success']);
     }
