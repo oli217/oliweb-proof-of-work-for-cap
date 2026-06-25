@@ -4,7 +4,7 @@ Tags: captcha, spam, proof-of-work, comments, login
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -86,6 +86,10 @@ Fail Open only applies to infrastructure errors: network failure, timeout, non-2
 It never covers a missing or empty token — a form submission without a `cap-token` field is always rejected regardless of this setting. It also never covers an explicit rejection (`success: false`) returned by the Cap server.
 
 == Changelog ==
+
+= 1.3.2 =
+* Sécurité : un token absent ou vide est désormais toujours rejeté, indépendamment de l'option Fail Open
+* Sécurité : une réponse JSON invalide du serveur Cap est correctement traitée comme erreur d'infrastructure (soumise au Fail Open)
 
 = 1.3.1 =
 * Ajout d'un bouton de test de connexion dans l'admin — vérifie que l'endpoint Cap est joignable et répond correctement
