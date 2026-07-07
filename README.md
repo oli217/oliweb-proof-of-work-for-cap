@@ -1,105 +1,105 @@
-# wordpress-cap
+# oliweb-proof-of-work-for-cap
 
-Plugin WordPress pour intégrer [Cap](https://github.com/tiagozip/cap) — un CAPTCHA proof-of-work auto-hébergé — dans les formulaires WordPress.
+WordPress plugin to integrate [Cap](https://github.com/tiagozip/cap) — a self-hosted proof-of-work CAPTCHA — into WordPress forms.
 
-Aucune dépendance externe : tout repose sur les API natives WordPress. Le module WebAssembly est bundlé localement dans le plugin.
+No external dependencies: built entirely on native WordPress APIs. The WebAssembly module is bundled locally within the plugin.
 
 ---
 
-## Prérequis
+## Requirements
 
 - PHP 8.2+
 - WordPress 6.4+
-- Une instance Cap auto-hébergée
+- A self-hosted Cap instance
 
 ---
 
 ## Installation
 
-1. Copier le dossier `tilivier-pow-for-cap/` dans `wp-content/plugins/`
-2. Activer le plugin depuis **Extensions** dans l'administration WordPress
-3. Aller dans **Réglages > PoW for Cap** et renseigner l'endpoint et la clé secrète
+1. Copy the `tilivier-pow-for-cap/` folder into `wp-content/plugins/`
+2. Activate the plugin from **Plugins** in the WordPress admin
+3. Go to **Settings > PoW for Cap** and enter your endpoint and secret key
 
-Le plugin embarque tous les assets nécessaires (JS, CSS, WASM). Aucune étape de build ni de téléchargement supplémentaire n'est requise.
+The plugin ships with all required assets (JS, CSS, WASM). No build step or additional download required.
 
 ---
 
 ## Configuration
 
-Accéder à **Réglages > PoW for Cap** dans l'administration WordPress.
+Go to **Settings > PoW for Cap** in the WordPress admin.
 
-| Champ | Description | Défaut |
-|-------|-------------|--------|
-| Endpoint URL | URL complète de votre instance Cap, incluant le site-key (ex : `https://cap.example.com/votre-site-key/`) | — |
-| Secret Key | Clé secrète générée dans le tableau de bord Cap (ne jamais exposer côté client) | — |
-| Token Field Name | Nom du champ hidden injecté par le widget | `cap-token` |
-| Timeout (seconds) | Délai avant abandon de la requête vers `/siteverify` | `5` |
-| Fail Open | Si coché, laisse passer la requête en cas d'erreur de communication avec Cap | décoché |
-| Hide Attribution Link | Si coché, masque le lien « Cap » en bas à droite du widget | décoché |
+| Field | Description | Default |
+|-------|-------------|---------|
+| Endpoint URL | Full URL of your Cap instance, including the site key (e.g. `https://cap.example.com/your-site-key/`) | — |
+| Secret Key | Secret key generated in the Cap dashboard (never expose client-side) | — |
+| Token Field Name | Name of the hidden field injected by the widget | `cap-token` |
+| Timeout (seconds) | Request timeout for `/siteverify` calls | `5` |
+| Fail Open | If checked, allows requests through on Cap communication errors | unchecked |
+| Hide Attribution Link | If checked, hides the "Cap" attribution link at the bottom right of the widget | unchecked |
 
-### Mode fail-open
+### Fail-open mode
 
-Par défaut, toute erreur de communication avec l'instance Cap (réseau, timeout, erreur 5xx) bloque la requête. Activer **Fail Open** inverse ce comportement : les erreurs d'infrastructure laissent passer la requête.
+By default, any communication error with the Cap instance (network failure, timeout, 5xx error) blocks the request. Enabling **Fail Open** reverses this behaviour: infrastructure errors silently pass the request through.
 
-Les erreurs couvertes par Fail Open sont exclusivement :
-- Erreur réseau ou timeout (`WP_Error` retourné par l'API HTTP WordPress)
-- Code HTTP hors 2xx (5xx, 4xx renvoyé par le serveur Cap)
-- Réponse non décodable en JSON valide
+Errors covered by Fail Open:
+- Network error or timeout (`WP_Error` returned by the WordPress HTTP API)
+- Non-2xx HTTP response (5xx, 4xx returned by the Cap server)
+- Response that cannot be decoded as valid JSON
 
-**Ce qui n'est jamais couvert par Fail Open :**
-- **Token absent ou vide** — rejeté inconditionnellement (`false`). L'absence de token n'est pas une erreur d'infrastructure, c'est une absence de tentative de vérification.
-- **Token explicitement invalide** (`success: false` dans la réponse JSON) — toujours rejeté.
+**Never covered by Fail Open:**
+- **Missing or empty token** — unconditionally rejected. A missing token is not an infrastructure error; it means no verification was attempted.
+- **Explicitly invalid token** (`success: false` in the JSON response) — always rejected.
 
 ---
 
-## Utilisation
+## Usage
 
-### Intégrations natives
+### Native integrations
 
-Le plugin s'intègre automatiquement aux formulaires WordPress suivants dès l'activation :
+The plugin automatically integrates with the following WordPress forms upon activation:
 
-| Formulaire | Ajout du widget | Validation |
-|------------|-----------------|------------|
-| Commentaires | `comment_form_after_fields` | `preprocess_comment` |
-| Connexion | `login_form` | `wp_authenticate_user` |
-| Inscription | `register_form` | `registration_errors` |
+| Form | Widget insertion | Validation |
+|------|-----------------|------------|
+| Comments | `comment_form_after_fields` | `preprocess_comment` |
+| Login | `login_form` | `wp_authenticate_user` |
+| Registration | `register_form` | `registration_errors` |
 | WooCommerce checkout | `woocommerce_after_checkout_billing_form` | `woocommerce_checkout_process` |
 | Gravity Forms | `gform_submit_button` | `gform_validation` |
 
-Les intégrations WooCommerce et Gravity Forms ne sont actives que si les plugins correspondants sont installés et activés.
+WooCommerce and Gravity Forms integrations are only active if the corresponding plugins are installed and activated.
 
 ### Shortcode `[tpow_widget]`
 
-Insérer le widget Cap dans n'importe quelle page, article ou constructeur de formulaire :
+Insert the Cap widget into any page, post, or form builder:
 
 ```
 [tpow_widget]
 ```
 
-Avec nonce CSP :
+With CSP nonce:
 
 ```
-[tpow_widget nonce="votre-nonce"]
+[tpow_widget nonce="your-nonce"]
 ```
 
-Le shortcode enqueue automatiquement le JS, le CSS et le WASM du widget, ainsi que `window.TPOW_CONFIG`.
+The shortcode automatically enqueues the widget JS, CSS, and WASM, as well as `window.TPOW_CONFIG`.
 
-### Mode programmatic — Shortcode `[tpow_programmatic]`
+### Programmatic mode — `[tpow_programmatic]`
 
-Pour les cas où vous souhaitez déclencher la vérification Cap sans afficher de widget visible (SPA, formulaire multi-étapes, intégration custom), utilisez `[tpow_programmatic]` :
+For cases where you want to trigger Cap verification without displaying a visible widget (SPA, multi-step forms, custom integration):
 
 ```
 [tpow_programmatic field="cap-token" id="tpow-token"]
 ```
 
-| Attribut | Description | Défaut |
-|----------|-------------|--------|
-| `field` | Nom du `<input type="hidden">` | `cap-token` |
-| `id` | ID HTML du champ | `tpow-token` |
+| Attribute | Description | Default |
+|-----------|-------------|---------|
+| `field` | Name of the `<input type="hidden">` | `cap-token` |
+| `id` | HTML ID of the field | `tpow-token` |
 
-Le shortcode enqueue les assets et insère un champ hidden. L'endpoint et le nom du champ sont exposés dans `window.TPOW_CONFIG`, disponible dès le chargement du script.
+The shortcode enqueues assets and inserts a hidden field. The endpoint and field name are exposed via `window.TPOW_CONFIG`, available as soon as the script loads.
 
-**Exemple :**
+**Example:**
 
 ```html
 [tpow_programmatic field="cap-token" id="my-cap-token"]
@@ -111,7 +111,7 @@ document.getElementById('submit-btn').addEventListener('click', async (e) => {
     const cap = new Cap({ apiEndpoint: window.TPOW_CONFIG.apiEndpoint });
 
     cap.addEventListener('progress', (event) => {
-        console.log(`Résolution… ${event.detail.progress}%`);
+        console.log(`Solving… ${event.detail.progress}%`);
     });
 
     const { token } = await cap.solve();
@@ -121,11 +121,11 @@ document.getElementById('submit-btn').addEventListener('click', async (e) => {
 </script>
 ```
 
-`window.TPOW_CONFIG` est injecté automatiquement par `wp_add_inline_script` lors de l'enqueue des assets (via `[tpow_widget]`, `[tpow_programmatic]`, ou l'une des intégrations natives) :
+`window.TPOW_CONFIG` is injected automatically by `wp_add_inline_script` when assets are enqueued (via `[tpow_widget]`, `[tpow_programmatic]`, or any native integration):
 
 ```javascript
 window.TPOW_CONFIG = {
-    apiEndpoint: "https://cap.example.com/votre-site-key/",
+    apiEndpoint: "https://cap.example.com/your-site-key/",
     tokenField:  "cap-token"
 };
 ```
@@ -134,7 +134,7 @@ window.TPOW_CONFIG = {
 
 ## CSP
 
-Le widget utilise des Web Workers et WebAssembly. Une CSP stricte doit inclure :
+The widget relies on Web Workers and WebAssembly. A strict CSP must include:
 
 ```
 Content-Security-Policy:
@@ -144,15 +144,15 @@ Content-Security-Policy:
   connect-src 'self';
 ```
 
-`worker-src blob:` — requis car le widget crée des workers via des URLs `Blob`.
-`wasm-unsafe-eval` — requis pour le calcul WebAssembly.
-`connect-src 'self'` — suffisant pour le WASM, bundlé localement dans le plugin (aucune requête vers un CDN externe).
+`worker-src blob:` — required because the widget spawns workers via Blob URLs.
+`wasm-unsafe-eval` — required for WebAssembly hash computation.
+`connect-src 'self'` — sufficient for WASM, bundled locally within the plugin (no requests to any external CDN).
 
 ---
 
-## Désinstallation
+## Uninstallation
 
-La désinstallation via l'interface WordPress supprime automatiquement toutes les options enregistrées en base de données :
+Uninstalling via the WordPress interface automatically removes all registered database options:
 
 - `tpow_endpoint`
 - `tpow_secret`
@@ -162,6 +162,6 @@ La désinstallation via l'interface WordPress supprime automatiquement toutes le
 
 ---
 
-## Licence
+## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
